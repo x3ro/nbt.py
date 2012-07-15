@@ -7,7 +7,6 @@ import argparse
 import struct
 import gzip
 import os
-import pprint
 import json
 
 # == Command line options ==
