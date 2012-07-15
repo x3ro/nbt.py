@@ -12,12 +12,12 @@ import json
 # == Command line options ==
 
 parser = argparse.ArgumentParser(
-    description='Convert NBT files to JSON',
+    description='Convert NBT file to JSON',
     formatter_class=argparse.RawTextHelpFormatter
 )
 
-parser.add_argument('files', nargs='*', metavar='FILE',
-                    help='Specifies files to be processed.')
+parser.add_argument('files', nargs=1, metavar='FILE',
+                    help='Specifies file to be processed.')
 
 args = parser.parse_args()
 
