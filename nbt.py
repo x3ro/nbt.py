@@ -8,6 +8,7 @@ import struct
 import gzip
 import os
 import pprint
+import json
 
 parser = argparse.ArgumentParser(
     description='Convert NBT files to JSON',
@@ -45,7 +46,7 @@ class Tag:
 # does not seem to be mentioned anywhere in the specs (and all the example strings
 # are < 256 chars). The reason for this assumption is that there is always a "zero"-byte
 # before the length in all examples.
-def read_tag_start(file, assume_unnamed):
+def read_tag_start_old(file, assume_unnamed):
     bytes = file.read(3)
 
     print "length: " + str(len(bytes))
@@ -73,6 +74,22 @@ def read_tag_start(file, assume_unnamed):
         return tag
 
 
+def read_tag_start(f, assume_unnamed):
+    tag_type = f.read(1)
+
+    if len(tag_type) < 1:
+        return { 'type': Tag.END, 'name_length': 0 }
+    else:
+        tag_type = struct.unpack('>B', tag_type)[0]
+
+    if assume_unnamed or tag_type == Tag.END:
+        return { 'type': tag_type, 'name_length': 0 }
+
+    name_length = struct.unpack('>H', f.read(2))[0]
+    return { 'type': tag_type, 'name_length': name_length }
+
+
+
 
 def read_tag_name(f, tag):
     if(tag['name_length'] < 1):
@@ -94,8 +111,8 @@ def read_tag_type_list(f):
     tag_id = tag_functions[Tag.BYTE](f)
     length = tag_functions[Tag.INT](f)
 
-    print "tag_id:"
-    print tag_id
+    #print "tag_id:"
+    #print tag_id
 
     list = [ ]
     for i in range(0, length):
@@ -105,7 +122,7 @@ def read_tag_type_list(f):
     #if tag_end != 0:
     #    raise Exception("Tag.END (0) expected, found " + str(tag_end))
 
-    pprint.pprint(list)
+    #pprint.pprint(list)
     return list
 
 
@@ -122,8 +139,8 @@ def read_tag_type_byte_array(f):
 
 def read_tag_type_compound(f, assume_unnamed=False):
     global compound
-    print "--- entering compound " + str(compound)
-    compound += 1
+    #print "--- entering compound " + str(compound)
+    #compound += 1
 
     current = { }
 
@@ -135,7 +152,7 @@ def read_tag_type_compound(f, assume_unnamed=False):
 
         tag = read_tag_start(f, assume_unnamed)
         name = read_tag_name(f, tag)
-        print "name: " + name
+        #print "name: " + name
 
         if tag['type'] == Tag.COMPOUND:
             current[name] = tag_functions[tag['type']](f)
@@ -151,8 +168,8 @@ def read_tag_type_compound(f, assume_unnamed=False):
         #print "stack:"
         #pprint.pprint(len(stack))
 
-    compound -= 1
-    print "--- exiting compound " + str(compound)
+    #compound -= 1
+    #print "--- exiting compound " + str(compound)
     return current
 
 
@@ -184,9 +201,14 @@ stack = [ data ]
 #f = open(args.files[0], 'rb')
 f = gzip.GzipFile(args.files[0], 'rb')
 
-pprint.pprint(tag_functions[Tag.COMPOUND](f))
+#pprint.pprint()
+#json.dumps(tag_functions[Tag.COMPOUND](f))
+#JSONEncoder().encode(tag_functions[Tag.COMPOUND](f))
+x = tag_functions[Tag.COMPOUND](f)
+print json.JSONEncoder().encode(x)
 
-exit("lol")
+#exit("done")
+exit(0)
 
 finished = False
 while(True):
@@ -214,8 +236,8 @@ while(True):
 
     #print "data:"
     #pprint.pprint(data)
-    print "stack:"
-    pprint.pprint(len(stack))
+    #print "stack:"
+    #pprint.pprint(len(stack))
 
 
 
