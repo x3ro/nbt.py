@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>nbt.py</title>
+  <link rel="stylesheet" href="pycco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  
+  <div class='section'>
+    <div class='docs'><h1>nbt.py</h1></div>
+  </div>
+  <div class='clearall'>
+  <div class='section' id='section-0'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-0'>#</a>
+      </div>
+      <p>Parser for the Named Binary Tag format as specified
+<a href="http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt">by Notch</a>.</p>
+<p>Currently only decoding is supported, encoding may be added if there is demand for it.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-1'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-1'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-2'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-2'>#</a>
+      </div>
+      <h2><span id="command-line-options" href="command-line-options"> Command line options </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+    <span class="n">description</span><span class="o">=</span><span class="s">&#39;Convert NBT file to JSON&#39;</span><span class="p">,</span>
+    <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawTextHelpFormatter</span>
+<span class="p">)</span>
+
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&#39;files&#39;</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;FILE&#39;</span><span class="p">,</span>
+                    <span class="n">help</span><span class="o">=</span><span class="s">&#39;Specifies file to be processed.&#39;</span><span class="p">)</span>
+
+<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="nb">exit</span><span class="p">(</span><span class="s">&quot;Please specify at least one file!&quot;</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-3'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-3'>#</a>
+      </div>
+      <h2><span id="necessary-information-for-the-parser" href="necessary-information-for-the-parser"> Necessary information for the parser </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-4'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-4'>#</a>
+      </div>
+      <p>Enum containing all known Tag-types.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">Tag</span><span class="p">:</span>
+    <span class="n">END</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">BYTE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">SHORT</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">INT</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">LONG</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">FLOAT</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">DOUBLE</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">BYTE_ARRAY</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">STRING</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">LIST</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="n">COMPOUND</span> <span class="o">=</span> <span class="mi">10</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-5'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-5'>#</a>
+      </div>
+      <h2><span id="generic-parsing-functions" href="generic-parsing-functions"> Generic parsing functions </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-6'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-6'>#</a>
+      </div>
+      <p>Parses a tag start (i.e. the beginning of a tag).</p>
+<ul>
+<li><code>f</code> -- The file object from which the tag should be read</li>
+<li><code>assume_unnamed</code> -- This flag should be set if we know that the tag which we are
+    about to read is unnamed (see specs for more information)</li>
+</ul>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_start</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">assume_unnamed</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-7'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-7'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">tag_type</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tag_type</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="n">Tag</span><span class="o">.</span><span class="n">END</span><span class="p">,</span> <span class="s">&#39;name_length&#39;</span><span class="p">:</span> <span class="mi">0</span> <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tag_type</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;B&#39;</span><span class="p">,</span> <span class="n">tag_type</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">assume_unnamed</span> <span class="ow">or</span> <span class="n">tag_type</span> <span class="o">==</span> <span class="n">Tag</span><span class="o">.</span><span class="n">END</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="n">tag_type</span><span class="p">,</span> <span class="s">&#39;name_length&#39;</span><span class="p">:</span> <span class="mi">0</span> <span class="p">}</span>
+
+    <span class="n">name_length</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span> <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="n">tag_type</span><span class="p">,</span> <span class="s">&#39;name_length&#39;</span><span class="p">:</span> <span class="n">name_length</span> <span class="p">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-8'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-8'>#</a>
+      </div>
+      <p>Get a tag's name from the file currently being read.</p>
+<ul>
+<li><code>f</code> -- The file being read</li>
+<li><code>tag</code> -- Tag information as extracted by `#read_tag_start</li>
+</ul>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_name</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">tag</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-9'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-9'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">if</span><span class="p">(</span><span class="n">tag</span><span class="p">[</span><span class="s">&#39;name_length&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">tag</span><span class="p">[</span><span class="s">&#39;name_length&#39;</span><span class="p">])</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-10'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-10'>#</a>
+      </div>
+      <h2><span id="tag-type-related-functions" href="tag-type-related-functions"> Tag type related functions </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-11'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-11'>#</a>
+      </div>
+      <p>Note that these functions do not read a tag's header, but only its payload! The tag header
+is read by <code>#read_tag_start</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-12'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-12'>#</a>
+      </div>
+      <p>Expected string tag format:</p>
+<pre><code>TAG_Short length
+&lt;"length" bytes of ASCII characters&gt;
+</code></pre>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_type_string</span><span class="p">(</span><span class="n">f</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-13'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-13'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">length</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;H&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">length</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-14'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-14'>#</a>
+      </div>
+      <p>Expected list tag format:</p>
+<pre><code>TAG_Byte tag_id
+TAG_Short length
+&lt;"length" unnamed tags of type "tag_id"&gt;
+</code></pre>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_type_list</span><span class="p">(</span><span class="n">f</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-15'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-15'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">tag_id</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">Tag</span><span class="o">.</span><span class="n">BYTE</span><span class="p">](</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">Tag</span><span class="o">.</span><span class="n">INT</span><span class="p">](</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span> <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="nb">list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag_functions</span><span class="p">[</span><span class="n">tag_id</span><span class="p">](</span><span class="n">f</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">list</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-16'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-16'>#</a>
+      </div>
+      <p>Expected byte array format:</p>
+<pre><code>TAG_Int length
+&lt;"length" bytes&gt;
+</code></pre>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_type_byte_array</span><span class="p">(</span><span class="n">f</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-17'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-17'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">length</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">Tag</span><span class="o">.</span><span class="n">INT</span><span class="p">](</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span> <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>
+        <span class="nb">list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag_functions</span><span class="p">[</span><span class="n">Tag</span><span class="o">.</span><span class="n">BYTE</span><span class="p">](</span><span class="n">f</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="nb">list</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-18'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-18'>#</a>
+      </div>
+      <p>Expected compound tag format: a number of named tags until a Tag_END is found, i.e.:</p>
+<pre><code>&lt;named_tag_1..named_tag_N&gt;
+TAG_end
+</code></pre>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">read_tag_type_compound</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">assume_unnamed</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-19'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-19'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">current</span> <span class="o">=</span> <span class="p">{</span> <span class="p">}</span>
+
+    <span class="k">while</span><span class="p">(</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="n">read_tag_start</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">assume_unnamed</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">read_tag_name</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">tag</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">tag</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">Tag</span><span class="o">.</span><span class="n">COMPOUND</span><span class="p">:</span>
+            <span class="n">current</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">tag</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]](</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">tag</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">Tag</span><span class="o">.</span><span class="n">END</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">current</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">tag</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]](</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">current</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-20'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-20'>#</a>
+      </div>
+      <h3><span id="tag-functions-object" href="tag-functions-object"> Tag functions object </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-21'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-21'>#</a>
+      </div>
+      <p>This object contains functions to parse all known tag types, accessible by <code>tag id</code>.
+If you're not familiar with this idiom: it is used in a similar fashion to <code>switch</code>-statements
+in other languages (<a href="http://stackoverflow.com/questions/374239/why-doesnt-python-have-a-switch-statement">Stackoverflow</a>)</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">tag_functions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">END</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;B&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">BYTE</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;B&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">SHORT</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;h&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">2</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">INT</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;i&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">LONG</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;q&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">FLOAT</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;f&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">4</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">DOUBLE</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="s">&#39;&gt;d&#39;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">8</span><span class="p">))[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">BYTE_ARRAY</span><span class="p">:</span> <span class="n">read_tag_type_byte_array</span><span class="p">,</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">STRING</span><span class="p">:</span> <span class="n">read_tag_type_string</span><span class="p">,</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">LIST</span><span class="p">:</span> <span class="n">read_tag_type_list</span><span class="p">,</span>
+    <span class="n">Tag</span><span class="o">.</span><span class="n">COMPOUND</span><span class="p">:</span> <span class="n">read_tag_type_compound</span>
+<span class="p">}</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-22'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-22'>#</a>
+      </div>
+      <hr />
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-23'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-23'>#</a>
+      </div>
+      <h4><span id="invoke-the-parser" href="invoke-the-parser"> Invoke the parser </span></h4>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">f</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">tag_functions</span><span class="p">[</span><span class="n">Tag</span><span class="o">.</span><span class="n">COMPOUND</span><span class="p">](</span><span class="n">f</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-24'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-24'>#</a>
+      </div>
+      <h4><span id="print-the-resulting-json-string-to-stdout" href="print-the-resulting-json-string-to-stdout"> Print the resulting JSON-string to stdout </span></h4>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">print</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONEncoder</span><span class="p">()</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  
+</div>
+</body>
