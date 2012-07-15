@@ -39,11 +39,6 @@ class Tag:
     COMPOUND = 10
 
 
-
-# I'm assuming that the length of a string is an unsigned short (16bit), even though that
-# does not seem to be mentioned anywhere in the specs (and all the example strings
-# are < 256 chars). The reason for this assumption is that there is always a "zero"-byte
-# before the length in all examples.
 def read_tag_start_old(file, assume_unnamed):
     bytes = file.read(3)
 
