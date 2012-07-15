@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 
-# Parser for the Named Binary Tag format as specified by Notch:
-# http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt
+"""
+Parser for the Named Binary Tag format as specified
+[by Notch](http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt).
+
+Currently only decoding is supported, encoding may be added if there is demand for it.
+"""
 
 import argparse
 import struct
 import gzip
 import os
 import json
+
+
 
 # == Command line options ==
 
@@ -26,7 +32,7 @@ if len(args.files) < 1:
 
 
 
-# == The parsing codes ==
+# == Necessary information for the parser ==
 
 # Enum containing all known Tag-types.
 class Tag:
@@ -43,7 +49,17 @@ class Tag:
     COMPOUND = 10
 
 
+# == Generic parsing functions ==
+
 def read_tag_start(f, assume_unnamed):
+    """
+    Parses a tag start (i.e. the beginning of a tag).
+
+    * `f` -- The file object from which the tag should be read
+    * `assume_unnamed` -- This flag should be set if we know that the tag which we are
+        about to read is unnamed (see specs for more information)
+    """
+
     tag_type = f.read(1)
 
     if len(tag_type) < 1:
@@ -59,8 +75,14 @@ def read_tag_start(f, assume_unnamed):
 
 
 
-
 def read_tag_name(f, tag):
+    """
+    Get a tag's name from the file currently being read.
+
+    * `f` -- The file being read
+    * `tag` -- Tag information as extracted by `#read_tag_start
+    """
+
     if(tag['name_length'] < 1):
         return ''
 
@@ -68,28 +90,34 @@ def read_tag_name(f, tag):
 
 
 
-# -------------------------
-# Begin: Tag type functions
-# Note that these functions do not read a tag's header, but only its payload!
-# -------------------------
+# == Tag type related functions ==
 
-# String tag format:
-#
-# TAG_Short length
-# <"length" bytes of ASCII characters>
-#
+# Note that these functions do not read a tag's header, but only its payload! The tag header
+# is read by `#read_tag_start`.
+
+
+
 def read_tag_type_string(f):
+    """
+    Expected string tag format:
+
+        TAG_Short length
+        <"length" bytes of ASCII characters>
+    """
     length = struct.unpack('>H', f.read(2))[0]
     return f.read(length)
 
 
-# List tag format:
-#
-# TAG_Byte tag_id
-# TAG_Short length
-# <"length" unnamed tags of type "tag_id">
-#
+
 def read_tag_type_list(f):
+    """
+    Expected list tag format:
+
+        TAG_Byte tag_id
+        TAG_Short length
+        <"length" unnamed tags of type "tag_id">
+    """
+
     tag_id = tag_functions[Tag.BYTE](f)
     length = tag_functions[Tag.INT](f)
 
@@ -100,12 +128,15 @@ def read_tag_type_list(f):
     return list
 
 
-# Byte array format:
-#
-# TAG_Int length
-# <"length" bytes>
-#
+
 def read_tag_type_byte_array(f):
+    """
+    Expected byte array format:
+
+        TAG_Int length
+        <"length" bytes>
+    """
+
     length = tag_functions[Tag.INT](f)
 
     for i in range(0, length):
@@ -114,12 +145,15 @@ def read_tag_type_byte_array(f):
     return list
 
 
-# Compound tag format: named tags until a Tag_END is found, i.e.:
-#
-# <named_tag_1..named_tag_N>
-# TAG_end
-#
+
 def read_tag_type_compound(f, assume_unnamed=False):
+    """
+    Expected compound tag format: a number of named tags until a Tag_END is found, i.e.:
+
+        <named_tag_1..named_tag_N>
+        TAG_end
+    """
+
     current = { }
 
     while(True):
@@ -136,6 +170,12 @@ def read_tag_type_compound(f, assume_unnamed=False):
     return current
 
 
+# === Tag functions object ===
+
+# This object contains functions to parse all known tag types, accessible by `tag id`.
+# If you're not familiar with this idiom: it is used in a similar fashion to `switch`-statements
+# in other languages ([Stackoverflow](http://stackoverflow.com/questions/374239/why-doesnt-python-have-a-switch-statement))
+
 tag_functions = {
     Tag.END: lambda f: struct.unpack('>B', f.read(1))[0],
     Tag.BYTE: lambda f: struct.unpack('>B', f.read(1))[0],
@@ -151,14 +191,16 @@ tag_functions = {
 }
 
 
-# -------------------------
-# End: Tag type functions
-# -------------------------
+# ---
 
+# ==== Invoke the parser ====
 
 f = gzip.GzipFile(args.files[0], 'rb')
-
 x = tag_functions[Tag.COMPOUND](f)
+
+
+
+# ==== Print the resulting JSON-string to stdout ====
 print json.JSONEncoder().encode(x)
 
 
