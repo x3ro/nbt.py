@@ -38,8 +38,6 @@ class Tag:
     LIST = 9
     COMPOUND = 10
 
-    #EOF = -1 # This one is used internally to check if the end of the file has been reached
-
 
 
 # I'm assuming that the length of a string is an unsigned short (16bit), even though that
