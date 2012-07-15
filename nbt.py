@@ -10,6 +10,8 @@ import os
 import pprint
 import json
 
+# == Command line options ==
+
 parser = argparse.ArgumentParser(
     description='Convert NBT files to JSON',
     formatter_class=argparse.RawTextHelpFormatter
@@ -25,6 +27,9 @@ if len(args.files) < 1:
 
 
 
+# == The parsing codes ==
+
+# Enum containing all known Tag-types.
 class Tag:
     END = 0
     BYTE = 1
@@ -94,12 +99,25 @@ def read_tag_name(f, tag):
 
 # -------------------------
 # Begin: Tag type functions
+# Note that these functions do not read a tag's header, but only its payload!
 # -------------------------
 
+# String tag format:
+#
+# TAG_Short length
+# <"length" bytes of ASCII characters>
+#
 def read_tag_type_string(f):
     length = struct.unpack('>H', f.read(2))[0]
     return f.read(length)
 
+
+# List tag format:
+#
+# TAG_Byte tag_id
+# TAG_Short length
+# <"length" unnamed tags of type "tag_id">
+#
 def read_tag_type_list(f):
     tag_id = tag_functions[Tag.BYTE](f)
     length = tag_functions[Tag.INT](f)
@@ -111,6 +129,11 @@ def read_tag_type_list(f):
     return list
 
 
+# Byte array format:
+#
+# TAG_Int length
+# <"length" bytes>
+#
 def read_tag_type_byte_array(f):
     length = tag_functions[Tag.INT](f)
 
@@ -119,6 +142,12 @@ def read_tag_type_byte_array(f):
 
     return list
 
+
+# Compound tag format: named tags until a Tag_END is found, i.e.:
+#
+# <named_tag_1..named_tag_N>
+# TAG_end
+#
 def read_tag_type_compound(f, assume_unnamed=False):
     current = { }
 
