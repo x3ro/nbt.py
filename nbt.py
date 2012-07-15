@@ -5,6 +5,8 @@ Parser for the Named Binary Tag format as specified
 [by Notch](http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt).
 
 Currently only decoding is supported, encoding may be added if there is demand for it.
+
+The GitHub repository (and downloads) can be found [here](https://github.com/x3ro/nbt.py).
 """
 
 import argparse
