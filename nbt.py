@@ -111,65 +111,35 @@ def read_tag_type_list(f):
     tag_id = tag_functions[Tag.BYTE](f)
     length = tag_functions[Tag.INT](f)
 
-    #print "tag_id:"
-    #print tag_id
-
     list = [ ]
     for i in range(0, length):
         list.append(tag_functions[tag_id](f))
 
-    #tag_end = tag_functions[Tag.END](f)
-    #if tag_end != 0:
-    #    raise Exception("Tag.END (0) expected, found " + str(tag_end))
-
-    #pprint.pprint(list)
     return list
 
 
 def read_tag_type_byte_array(f):
     length = tag_functions[Tag.INT](f)
 
-    list = [ ]
-    #print length
-    #exit("adios")
     for i in range(0, length):
         list.append(tag_functions[Tag.BYTE](f))
 
     return list
 
 def read_tag_type_compound(f, assume_unnamed=False):
-    global compound
-    #print "--- entering compound " + str(compound)
-    #compound += 1
-
     current = { }
 
     while(True):
-        #if len(stack) < 1:
-        #    break
-
-        #current = stack[-1]
-
         tag = read_tag_start(f, assume_unnamed)
         name = read_tag_name(f, tag)
-        #print "name: " + name
 
         if tag['type'] == Tag.COMPOUND:
             current[name] = tag_functions[tag['type']](f)
-            #stack.append(current[name])
         elif tag['type'] == Tag.END:
             break
         else:
             current[name] = tag_functions[tag['type']](f)
 
-
-        #print "data:"
-        #pprint.pprint(data)
-        #print "stack:"
-        #pprint.pprint(len(stack))
-
-    #compound -= 1
-    #print "--- exiting compound " + str(compound)
     return current
 
 
@@ -188,56 +158,15 @@ tag_functions = {
 }
 
 
-
 # -------------------------
 # End: Tag type functions
 # -------------------------
 
-compound = 0
 
-data = { }
-stack = [ data ]
-
-#f = open(args.files[0], 'rb')
 f = gzip.GzipFile(args.files[0], 'rb')
 
-#pprint.pprint()
-#json.dumps(tag_functions[Tag.COMPOUND](f))
-#JSONEncoder().encode(tag_functions[Tag.COMPOUND](f))
 x = tag_functions[Tag.COMPOUND](f)
 print json.JSONEncoder().encode(x)
-
-#exit("done")
-exit(0)
-
-finished = False
-while(True):
-    if len(stack) < 1:
-        break
-
-    current = stack[-1]
-
-    tag = read_tag_start(f)
-    name = read_tag_name(f, tag)
-
-
-    print tag
-
-    if tag['type'] == Tag.COMPOUND:
-        current[name] = { }
-        stack.append(current[name])
-    elif tag['type'] == Tag.END:
-        stack.pop()
-    #elif tag['type'] == Tag.LIST:
-    #    exit("oh not not implemented")
-    else:
-        current[name] = tag_functions[tag['type']](f)
-
-
-    #print "data:"
-    #pprint.pprint(data)
-    #print "stack:"
-    #pprint.pprint(len(stack))
 
 
 
