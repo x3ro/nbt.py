@@ -139,6 +139,7 @@ def read_tag_type_byte_array(f):
 
     length = tag_functions[Tag.INT](f)
 
+    list = [ ]
     for i in range(0, length):
         list.append(tag_functions[Tag.BYTE](f))
 
