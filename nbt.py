@@ -44,34 +44,6 @@ class Tag:
     COMPOUND = 10
 
 
-def read_tag_start_old(file, assume_unnamed):
-    bytes = file.read(3)
-
-    print "length: " + str(len(bytes))
-    if len(bytes) == 0:
-        return { 'type': Tag.END, 'name_length': 0 }
-    if len(bytes) == 1:
-        # We reached the end of the file, and therefore return a Tag.END if the byte is "0"
-        byte = struct.unpack('>B', bytes)[0]
-        if byte != 0:
-            raise Exception("Expected Tag.END at the end of the file, found " + str(byte))
-
-        return { 'type': Tag.END, 'name_length': 0 }
-
-
-    field_names = ('type', 'name_length')
-    data = struct.unpack('>BH', bytes)
-
-    tag = dict(zip(field_names, data))
-
-    if tag['type'] == Tag.END or assume_unnamed:
-        f.seek(-2, os.SEEK_CUR) # The END tag has only a single byte, the following two
-                                # are already part of the next TAG. Therefore, rewind by 2
-        return { 'type': Tag.END, 'name_length': 0 }
-    else:
-        return tag
-
-
 def read_tag_start(f, assume_unnamed):
     tag_type = f.read(1)
 
