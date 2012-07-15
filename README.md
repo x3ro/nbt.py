@@ -2,7 +2,7 @@
 
 A parser for the [Named Binary Tag Format](http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt) as used in Minecraft. Documentation can be found [on GitHub pages](http://x3ro.github.com/nbt.py/).
 
-**nbt.py** currently only supports NBT decoding. If you'd like to see an encoding feature implement, please create an issue (or +1 an existing one). Also, please report any other issues you find, preferably with an NBT file with which they occur. You are of course welcome to create pull requests as well.
+**nbt.py** currently only supports NBT decoding. If you'd like to see an encoding feature implemented, please create an issue (or +1 an existing one). Also, please report any other issues you find, preferably with an NBT file with which they occur. You are of course welcome to create pull requests as well.
 
 
 
